@@ -261,7 +261,7 @@ app.post('/api/addevent', async (req, res) => {
   // )
   console.log(mongoResult)
   res.status(200)
-  res.send('Event added')
+  res.send(id)
 })
 
 app.listen(3000, () => {
