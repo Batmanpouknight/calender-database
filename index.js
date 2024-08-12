@@ -2,6 +2,7 @@ import express from 'express'
 import { MongoClient } from 'mongodb'
 import dotenv from 'dotenv'
 import crypto from 'crypto'
+import { error } from 'console'
 dotenv.config()
 
 const app = express()
@@ -255,13 +256,51 @@ app.post('/api/addevent', async (req, res) => {
       break
   }
 
-  // const mongoResult = await months.updateOne(
-  //   { name: monthString[month] },
-  //   { $push: { 'dates.7.events': { id, name, description, country } } }
-  // )
   console.log(mongoResult)
   res.status(200)
   res.send(id)
+})
+
+app.post('/users/signup', async (req, res) => {
+  const { email, password } = req.body
+  console.log('request for /users/signup', email, password)
+
+  const userExists = await database.db('calender').collection('users').findOne({ email })
+  console.log(userExists)
+  if (userExists) {
+    res.send({
+      result: false,
+      error: { code: 409, message: 'User already exists', location: 'email' },
+    })
+    return
+  }
+
+  const user = await database.db('calender').collection('users').insertOne({ email, password })
+  const id = user.insertedId
+
+  res.status(200)
+  res.send({ result: { id }, error: false })
+})
+
+app.post('/users/login', async (req, res) => {
+  const { email, password } = req.body
+  console.log('request for /users/login', email, password)
+
+  const user = await database.db('calender').collection('users').findOne({ email })
+  console.log(user)
+
+  if (!user) {
+    res.send({
+      result: false,
+      error: { code: 401, message: 'Invalid email', location: 'email' },
+    })
+    return
+  }
+  res.status(200)
+  res.send({
+    result: { id: user._id.toHexString(), email: user.email, password: user.password },
+    error: false,
+  })
 })
 
 app.listen(3000, () => {
