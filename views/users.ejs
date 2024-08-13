@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>User List</title>
+  </head>
+  <body>
+    <style>
+      .promote {
+        background-color: green;
+        color: white;
+        height: 40px;
+        width: 100px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .demote {
+        background-color: red;
+        color: white;
+        height: 40px;
+        width: 100px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .promote:hover {
+        background-color: darkgreen;
+      }
+      .demote:hover {
+        background-color: darkred;
+      }
+    </style>
+
+    <h1>User List</h1>
+    <ul>
+      <% users.forEach(function(user) { %>
+      <li>
+        <%= user.email %>: <%= user.type %>
+        <button user="<%= user.email %>" class="promote">Promote</button>
+        <button user="<%= user.email %>" class="demote">Demote</button>
+      </li>
+      <% }); %>
+    </ul>
+    <button class="logout">Logout</button>
+  </body>
+  <script>
+    const promoteButtons = document.querySelectorAll('.promote')
+    const demoteButtons = document.querySelectorAll('.demote')
+    const logoutButton = document.querySelector('.logout')
+
+    document.addEventListener('DOMContentLoaded', () => {
+      promoteButtons.forEach((button, index) => {
+        button.addEventListener('click', () => {
+          fetch(`/users/promote`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: button.getAttribute('user') }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                window.location.reload()
+              } else {
+                alert(data.message)
+              }
+            })
+        })
+      })
+
+      demoteButtons.forEach((button, index) => {
+        button.addEventListener('click', () => {
+          fetch(`/users/demote`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: button.getAttribute('user') }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                window.location.reload()
+              } else {
+                alert(data.message)
+              }
+            })
+        })
+      })
+      logoutButton.addEventListener('click', () => {
+        fetch(`/logout`, {
+          method: 'POST',
+        })
+      })
+    })
+  </script>
+</html>
