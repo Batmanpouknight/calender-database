@@ -302,6 +302,7 @@ app.post('/users/login', async (req, res) => {
       username: user.username,
       email: user.email,
       password: user.password,
+      type: user.type,
     },
     error: false,
   })
