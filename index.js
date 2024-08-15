@@ -5,6 +5,7 @@ import crypto from 'crypto'
 import session from 'express-session'
 import MongoStore from 'connect-mongo'
 import bcrypt from 'bcrypt'
+import { userEmails } from './users.js'
 dotenv.config()
 
 const app = express()
@@ -256,6 +257,14 @@ app.post('/users/demote', async (req, res) => {
 app.post('/users/signup', async (req, res) => {
   const { email, username, password, type } = req.body
   console.log('request for /users/signup', email, username, password, type)
+
+  if (!userEmails.includes(email)) {
+    res.send({
+      result: false,
+      error: { code: 401, message: 'You are not permited to create an account', location: 'email' },
+    })
+    return
+  }
 
   const emailExists = await database.db('calender').collection('users').findOne({ email })
   const usernameExists = await database.db('calender').collection('users').findOne({ username })
