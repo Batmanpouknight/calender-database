@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Events</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <h1>Events</h1>
+    <ul>
+        <% events.forEach(function(event) { %>
+            <li><%= event.name %></li>
+        <% }); %>
+    </ul>
+</body>
+</html>

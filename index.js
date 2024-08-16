@@ -1,11 +1,12 @@
 import express from 'express'
-import { MongoClient } from 'mongodb'
+import { MongoClient, ObjectId } from 'mongodb'
 import dotenv from 'dotenv'
-import crypto from 'crypto'
 import session from 'express-session'
 import MongoStore from 'connect-mongo'
 import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
 import { userEmails } from './users.js'
+import { newMonths } from './2025.js'
 dotenv.config()
 
 const app = express()
@@ -18,13 +19,16 @@ const atlasURI = `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_ho
 
 const node_session_secret = process.env.NODE_SESSION_SECRET
 
+const jwt_secret = process.env.JWT_SECRET
+
 const database = new MongoClient(`${atlasURI}/?retryWrites=true`)
-const months = database.db('calender').collection('2024')
+const months = database.db('calender').collection('2025')
+const events = database.db('calender').collection('events')
 
 const monthString = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 var mongoStore = MongoStore.create({
-  mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/sessions`,
+  mongoUrl: `${atlasURI}/sessions`,
   crypto: {
     secret: mongodb_session_secret,
   },
@@ -46,14 +50,10 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(function (req, res, next) {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   next()
 })
 app.set('view engine', 'ejs')
-
-function generateRandomId() {
-  return crypto.randomBytes(16).toString('hex') // Generates a 32-character random ID
-}
 
 app.get('/', (req, res) => {
   res.send('This is the calender api')
@@ -64,115 +64,34 @@ app.get('/months', async (req, res) => {
   res.json(data)
 })
 
+app.get('/api/viewEvents', async (req, res) => {
+  const data = await events.find().toArray()
+  res.render('events', { events: data })
+})
+
+app.get('/api/events', async (req, res) => {
+  const { month } = req.body
+  const data = await events.find().toArray()
+  res.json(data)
+})
+
 app.post('/api/addevent', async (req, res) => {
-  const { name, description, country, month, dayIndex } = req.body
-  const id = generateRandomId()
-  console.log('request for /api/addEvent', name, description, country, month, dayIndex)
-  let mongoResult
+  const { name, description, country, month, dayNumber, dayIndex, userId } = req.body
+  console.log('request for /api/addEvent', name, description, country, month, dayNumber, dayIndex, userId)
 
-  switch (dayIndex) {
-    case 0:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.0.events': { id, name, description, country } } })
-      break
-    case 1:
-      console.log('we in here', month)
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.1.events': { id, name, description, country } } })
-      break
-    case 2:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.2.events': { id, name, description, country } } })
-      break
-    case 3:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.3.events': { id, name, description, country } } })
-      break
-    case 4:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.4.events': { id, name, description, country } } })
-      break
-    case 5:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.5.events': { id, name, description, country } } })
-      break
-    case 6:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.6.events': { id, name, description, country } } })
-      break
-    case 7:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.7.events': { id, name, description, country } } })
-      break
-    case 8:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.8.events': { id, name, description, country } } })
-      break
-    case 9:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.9.events': { id, name, description, country } } })
-      break
-    case 10:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.10.events': { id, name, description, country } } })
-      break
-    case 11:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.11.events': { id, name, description, country } } })
-      break
-    case 12:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.12.events': { id, name, description, country } } })
-      break
-    case 13:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.13.events': { id, name, description, country } } })
-      break
-    case 14:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.14.events': { id, name, description, country } } })
-      break
-    case 15:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.15.events': { id, name, description, country } } })
-      break
-    case 16:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.16.events': { id, name, description, country } } })
-      break
-    case 17:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.17.events': { id, name, description, country } } })
-      break
-    case 18:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.18.events': { id, name, description, country } } })
-      break
-    case 19:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.19.events': { id, name, description, country } } })
-      break
-    case 20:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.20.events': { id, name, description, country } } })
-      break
-    case 21:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.21.events': { id, name, description, country } } })
-      break
-    case 22:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.22.events': { id, name, description, country } } })
-      break
-    case 23:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.23.events': { id, name, description, country } } })
-      break
-    case 24:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.24.events': { id, name, description, country } } })
-      break
-    case 25:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.25.events': { id, name, description, country } } })
-      break
-    case 26:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.26.events': { id, name, description, country } } })
-      break
-    case 27:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.27.events': { id, name, description, country } } })
-      break
-    case 28:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.28.events': { id, name, description, country } } })
-      break
-    case 29:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.29.events': { id, name, description, country } } })
-      break
-    case 30:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.30.events': { id, name, description, country } } })
-      break
-    case 31:
-      mongoResult = await months.updateOne({ name: monthString[month] }, { $push: { 'dates.31.events': { id, name, description, country } } })
-      break
-  }
+  const eventResult = await events.insertOne({ name, description, country, month, dayNumber, dayIndex })
 
-  console.log(mongoResult)
-  res.status(200)
-  res.send(id)
+  const eventId = eventResult.insertedId.toHexString()
+
+  await months.updateOne({ name: monthString[month] }, { $push: { [`dates.${dayIndex}.events`]: eventId } })
+
+  const userUpdate = await database
+    .db('calender')
+    .collection('users')
+    .updateOne({ _id: new ObjectId(userId) }, { $push: { events: eventId } })
+  console.log(userUpdate)
+
+  res.status(200).send(eventId)
 })
 
 app.get('/authenticate', async (req, res) => {
@@ -212,6 +131,23 @@ app.get('/users', async (req, res) => {
 
   const data = await database.db('calender').collection('users').find().toArray()
   res.render('users', { users: data })
+})
+
+app.post('/user/updatefromserver', async (req, res) => {
+  try {
+    const token = req.headers.authorization.substring(7)
+
+    const { id } = jwt.verify(token, jwt_secret)
+    const user = await database
+      .db('calender')
+      .collection('users')
+      .findOne({ _id: new ObjectId(id) })
+    const { email, username, type, events } = user
+    res.status(200).send({ result: { id, email, username, type, events }, error: false })
+  } catch (error) {
+    console.log(error)
+    res.status(401).send({ error: 'Unauthorized' })
+  }
 })
 
 app.post('/logout', async (req, res) => {
@@ -282,11 +218,13 @@ app.post('/users/signup', async (req, res) => {
     return
   }
 
-  const user = await database.db('calender').collection('users').insertOne({ email, username, password, type })
+  const user = await database.db('calender').collection('users').insertOne({ email, username, password, type, events: [] })
   const id = user.insertedId
 
+  const token = jwt.sign({ id, email }, jwt_secret, { expiresIn: '14d' })
+
   res.status(200)
-  res.send({ result: { id }, error: false })
+  res.send({ result: { id, token }, error: false })
 })
 
 app.post('/users/login', async (req, res) => {
@@ -295,7 +233,6 @@ app.post('/users/login', async (req, res) => {
 
   //TODO: add a way that it searches for the email or username
   const user = await database.db('calender').collection('users').findOne({ email })
-  console.log(user)
 
   if (!user) {
     res.send({
@@ -304,14 +241,17 @@ app.post('/users/login', async (req, res) => {
     })
     return
   }
-  res.status(200)
-  res.send({
+  const token = jwt.sign({ id: user._id.toHexString(), email }, jwt_secret, { expiresIn: '14d' })
+
+  res.status(200).send({
     result: {
       id: user._id.toHexString(),
       username: user.username,
       email: user.email,
-      password: user.password,
       type: user.type,
+      password: user.password,
+      events: user.events,
+      token,
     },
     error: false,
   })
