@@ -70,16 +70,15 @@ app.get('/api/viewEvents', async (req, res) => {
 })
 
 app.get('/api/events', async (req, res) => {
-  const { month } = req.body
   const data = await events.find().toArray()
   res.json(data)
 })
 
 app.post('/api/addevent', async (req, res) => {
-  const { name, description, country, month, dayNumber, dayIndex, userId } = req.body
-  console.log('request for /api/addEvent', name, description, country, month, dayNumber, dayIndex, userId)
+  const { name, description, country, month, dayNumber, dayIndex, source, userId, holiday } = req.body
+  console.log('request for /api/addEvent', name, description, country, month, dayNumber, dayIndex, source, userId, holiday)
 
-  const eventResult = await events.insertOne({ name, description, country, month, dayNumber, dayIndex })
+  const eventResult = await events.insertOne({ name, description, country, month, dayNumber, dayIndex, userId, holiday, source: source || '' })
 
   const eventId = eventResult.insertedId.toHexString()
 
@@ -92,6 +91,37 @@ app.post('/api/addevent', async (req, res) => {
   console.log(userUpdate)
 
   res.status(200).send(eventId)
+})
+
+app.post('/api/removeevent', async (req, res) => {
+  const { id } = req.body
+  console.log('request for /api/removeEvent', id)
+
+  const event = await events.findOneAndDelete({ _id: new ObjectId(id) })
+
+  await months.updateOne({ name: monthString[event.month] }, { $pull: { [`dates.${event.dayIndex}.events`]: id } })
+
+  await database
+    .db('calender')
+    .collection('users')
+    .updateOne({ _id: new ObjectId(event.userId) }, { $pull: { events: id } })
+
+  res.status(200).send(id)
+})
+
+app.post('/api/updateevent', async (req, res) => {
+  const { id, name, description, country, month, dayNumber, dayIndex, source, userId, holiday } = req.body
+  console.log('request for /api/updateEvent', id, name, description, country, month, dayNumber, dayIndex, source, userId, holiday)
+
+  const event = await events.findOneAndUpdate(
+    { _id: new ObjectId(id) },
+    { $set: { name, description, country, month, dayNumber, dayIndex, source, userId, holiday } }
+  )
+
+  await months.updateOne({ name: monthString[month] }, { $pull: { [`dates.${event.value.dayIndex}.events`]: id } })
+  await months.updateOne({ name: monthString[month] }, { $push: { [`dates.${dayIndex}.events`]: id } })
+
+  res.status(200).send(id)
 })
 
 app.get('/authenticate', async (req, res) => {
