@@ -110,18 +110,23 @@ app.post('/api/removeevent', async (req, res) => {
 })
 
 app.post('/api/updateevent', async (req, res) => {
-  const { id, name, description, country, month, dayNumber, dayIndex, source, userId, holiday } = req.body
-  console.log('request for /api/updateEvent', id, name, description, country, month, dayNumber, dayIndex, source, userId, holiday)
+  const { _id, name, description, country, month, dayNumber, dayIndex, source, userId, holiday } = req.body
+  console.log('request for /api/updateEvent', _id, name, description, country, month, dayNumber, dayIndex, source, userId, holiday)
 
   const event = await events.findOneAndUpdate(
-    { _id: new ObjectId(id) },
+    { _id: new ObjectId(_id) },
     { $set: { name, description, country, month, dayNumber, dayIndex, source, userId, holiday } }
   )
 
-  await months.updateOne({ name: monthString[month] }, { $pull: { [`dates.${event.value.dayIndex}.events`]: id } })
-  await months.updateOne({ name: monthString[month] }, { $push: { [`dates.${dayIndex}.events`]: id } })
+  if (event.month === month && event.dayIndex === dayIndex) {
+    res.status(200).send(_id)
+    return
+  }
 
-  res.status(200).send(id)
+  await months.updateOne({ name: monthString[event.month] }, { $pull: { [`dates.${event.dayIndex}.events`]: _id } })
+  await months.updateOne({ name: monthString[month] }, { $push: { [`dates.${dayIndex}.events`]: _id } })
+
+  res.status(200).send(_id)
 })
 
 app.get('/authenticate', async (req, res) => {
