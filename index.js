@@ -16,6 +16,7 @@ const mongodb_user = process.env.MONGODB_USER
 const mongodb_password = process.env.MONGODB_PASSWORD
 const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET
 const atlasURI = `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}`
+const saltrounds = 15
 
 const node_session_secret = process.env.NODE_SESSION_SECRET
 
@@ -253,7 +254,9 @@ app.post('/users/signup', async (req, res) => {
     return
   }
 
-  const user = await database.db('calender').collection('users').insertOne({ email, username, password, type, events: [] })
+  const hashedPassword = await bcrypt.hash(password, saltrounds)
+
+  const user = await database.db('calender').collection('users').insertOne({ email, username, password: hashedPassword, type, events: [] })
   const id = user.insertedId
 
   const token = jwt.sign({ id, email }, jwt_secret, { expiresIn: '14d' })
@@ -263,7 +266,7 @@ app.post('/users/signup', async (req, res) => {
 })
 
 app.post('/users/login', async (req, res) => {
-  const { email } = req.body
+  const { email, password } = req.body
   console.log('request for /users/login', email)
 
   //TODO: add a way that it searches for the email or username
@@ -276,6 +279,16 @@ app.post('/users/login', async (req, res) => {
     })
     return
   }
+
+  const match = await bcrypt.compare(password, user.password)
+  if (!match) {
+    res.send({
+      result: false,
+      error: { code: 401, message: 'Invalid password', location: 'password' },
+    })
+    return
+  }
+
   const token = jwt.sign({ id: user._id.toHexString(), email }, jwt_secret, { expiresIn: '14d' })
 
   res.status(200).send({
