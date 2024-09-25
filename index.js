@@ -17,6 +17,7 @@ const mongodb_password = process.env.MONGODB_PASSWORD
 const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET
 const atlasURI = `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}`
 const saltrounds = 15
+const port = process.env.PORT || 3000
 
 const node_session_secret = process.env.NODE_SESSION_SECRET
 
@@ -305,6 +306,6 @@ app.post('/users/login', async (req, res) => {
   })
 })
 
-app.listen(3000, () => {
-  console.log('Server is listening on port 3000...')
+app.listen(port, () => {
+  console.log(`Server is listening on port ${port}...`)
 })
